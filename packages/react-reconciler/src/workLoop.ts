@@ -1,14 +1,42 @@
 import { beginWork } from './beginWork';
 import { completeWork } from './completeWork';
-import { FiberNode } from './fiber';
+import { FiberNode, FiberRootNode, createWorkInProgress } from './fiber';
+import { HostRoot } from './workTags';
 
 let workInProgress: FiberNode | null = null;
 
-function prepareFreshStack(fiber: FiberNode) {
-  workInProgress = fiber;
+function prepareFreshStack(root: FiberRootNode) {
+  workInProgress = createWorkInProgress(root.current, {}); // 根据hostRootFiber去创建对应的workInProgress
 }
 
-function renderRoot(root: FiberNode) {
+/**
+ * 调度Fiber
+ * @param fiber fiber数据结构
+ */
+export function scheduleUpdateOnFiber(fiber: FiberNode) {
+  // TODO调度功能
+  const root = markUpdateFromFiberToRoot(fiber); // 从当前触发更新的fiebr向上便利获取到根节点fiberRootNode，随后开始更新流程
+  renderRoot(root); // 开始更新
+}
+
+function markUpdateFromFiberToRoot(fiber: FiberNode) {
+  let node = fiber;
+  let parent = node.return;
+
+  // 当前fiber是普通fiber
+  while (parent !== null) {
+    node = parent;
+    parent = node.return;
+  }
+
+  if (node.tag === HostRoot) {
+    // 当node.parent为null，说明此时node是hostRotFiber,返回它的stateNode指针指向的FiberRootNode
+    return node.stateNode;
+  }
+  return null; // 否则返回null
+}
+
+function renderRoot(root: FiberRootNode) {
   prepareFreshStack(root);
 
   // 开启dfs深度遍历fiberNode
@@ -23,6 +51,9 @@ function renderRoot(root: FiberNode) {
   } while (true);
 }
 
+/**
+ * 进行循环工作
+ */
 function workLoop() {
   while (workInProgress !== null) {
     performUnitOfWork(workInProgress);
