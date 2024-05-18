@@ -18,7 +18,7 @@ export function createContaienr(container: Container) {
 }
 
 /**
- * 用于更新容器
+ * 用于首屏更新，创建hostRootFiber对应的update并将其加入updateQueue中
  * @param params
  */
 export function updateContainer(element: ReactElementType | null, root: FiberRootNode) {

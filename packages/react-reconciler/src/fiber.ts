@@ -1,5 +1,5 @@
-import { Key, Props, Ref } from 'packages/shared/ReactTypes';
-import { WorkTag } from './workTags';
+import { Key, Props, ReactElementType, Ref } from 'packages/shared/ReactTypes';
+import { FunctionComponent, HostComponent, WorkTag } from './workTags';
 import { Flags, NoFlags } from './fiberFlags';
 import { Container } from 'hostConfig';
 
@@ -20,14 +20,15 @@ export class FiberNode {
   memoizedState: any;
   alternate: FiberNode | null;
   flags: Flags;
+  subTreeFlags: Flags;
 
   updateQueue: unknown; // 更新队列
 
   constructor(tag: WorkTag, pendingProps: Props, key: Key) {
     // 实例属性
-    this.tag = tag;
-    this.key = key;
-    this.stateNode = null; // HostComponent <div>类型 stateNode为div
+    this.tag = tag; // 表示当前Fiber节点的类型
+    this.key = key; // React中用于唯一标识子节点的键值。帮助React在调和过程中高效地识别和更新节点
+    this.stateNode = null; // 与Fiber节点对应的实际DOM节点或类组件实例
     this.type = null; // fiberNode的类型
 
     // 构成树状结构
@@ -46,6 +47,7 @@ export class FiberNode {
 
     // 副作用，表达当前fiberNode是要更新还是删除
     this.flags = NoFlags;
+    this.subTreeFlags = NoFlags;
   }
 }
 
@@ -63,10 +65,10 @@ export class FiberRootNode {
 }
 
 /**
- * 创建workInProgress,双缓冲机制，创建两颗workInProgress用于后续更新比较
- * @param current
- * @param pendingProps
- * @returns
+ * 创建workInProgress,双缓冲机制，创建两颗fiber用于后续更新比较
+ * @param current 页面上呈现的fiber树
+ * @param pendingProps // 传递的参数
+ * @returns {FiberNode} 返回当前正在更新的fiber树
  */
 export const createWorkInProgress = (current: FiberNode, pendingProps: Props): FiberNode => {
   let wip = current.alternate;
@@ -82,6 +84,7 @@ export const createWorkInProgress = (current: FiberNode, pendingProps: Props): F
     // update
     wip.pendingProps = pendingProps;
     wip.flags = NoFlags;
+    wip.subTreeFlags = NoFlags;
   }
 
   wip.type = current.type;
@@ -92,3 +95,17 @@ export const createWorkInProgress = (current: FiberNode, pendingProps: Props): F
 
   return wip;
 };
+
+export function createFiberFromElement(element: ReactElementType) {
+  const { type, key, props } = element;
+  let fiberTag: WorkTag = FunctionComponent;
+  if (typeof type === 'string') {
+    // <div /> type 'string'
+    fiberTag = HostComponent;
+  } else if (typeof type !== 'function' && __DEV__) {
+    console.warn('未定义的type类型', element);
+  }
+  const fiber = new FiberNode(fiberTag, props, key);
+  fiber.type = type;
+  return fiber;
+}

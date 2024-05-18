@@ -45,10 +45,20 @@ function renderRoot(root: FiberRootNode) {
       workLoop();
       break;
     } catch (e) {
-      console.error('workLoop发生错误', e);
+      // 生产环境打印错误
+      if (__DEV__) {
+        console.error('workLoop发生错误', e);
+      }
       workInProgress = null;
     }
   } while (true);
+
+  // 通过beginWork和completeWork后，获取到了更新完成后的整颗fiber树
+  const finishedWork = root.current.alternate;
+  root.finishedWork = finishedWork;
+
+  // 根据更新完的fiber树去创建对应的DOM
+  commitRoot(root);
 }
 
 /**
@@ -77,7 +87,7 @@ function completeUnitOfWork(fiber: FiberNode) {
   let node: FiberNode | null = fiber;
 
   do {
-    completeWork();
+    completeWork(node);
     const sibling = node.sibling; // 获取兄弟节点
 
     // 有兄弟节点，遍历兄弟节点
