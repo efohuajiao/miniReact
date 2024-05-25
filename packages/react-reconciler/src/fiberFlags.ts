@@ -13,3 +13,5 @@ export const Update = 0b0000100;
  * 表示节点删除
  */
 export const ChldDeletion = 0b0001000;
+
+export const MutationMask = Placement | Update | ChldDeletion;
